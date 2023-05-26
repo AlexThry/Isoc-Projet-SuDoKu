@@ -1,90 +1,115 @@
-from pysat.formula import CNF
 import random
-from pysat.solvers import Glucose3
+from pysat.formula import CNF
+
+# Étape 1
 
 
-def encode_sudoku(grid):
+def sudoku_to_sat(sudoku):
     cnf = CNF()
 
-    # Add cell, row, column and box constraints
+    # Ajouter des clauses pour chaque cellule
     for i in range(9):
         for j in range(9):
-            if grid[i][j] != 0:  # If the cell is pre-filled
-                cnf.append([81*i + 9*j + grid[i][j]])  # Append the clause
-            else:  # If the cell is not pre-filled
-                # Add clauses for the cell, row, column and box constraints
-                for val in range(1, 10):
+            if sudoku[i][j] != 0:
+                cnf.append([81*i + 9*j + sudoku[i][j]])
+            else:
+                for k in range(1, 10):
+                    cnf.append([81*i + 9*j + k])
+
+    # Ajouter des clauses pour chaque ligne, chaque colonne et chaque carré 3x3
+    for i in range(9):
+        for k in range(1, 10):
+            cnf.append([81*i + 9*j + k for j in range(9)])
+            cnf.append([81*j + 9*i + k for j in range(9)])
+            cnf.append([81*(3*(i//3) + j//3) + 9 *
+                       (3*(i % 3) + j % 3) + k for j in range(9)])
+
+    # Ajouter des clauses pour s'assurer que chaque cellule ne représente pas deux chiffres différents en même temps
+    for i in range(9):
+        for j in range(9):
+            for d in range(1, 10):
+                for d_prime in range(d+1, 10):
                     cnf.append(
-                        [-((81*(i//3) + 9*(j//3) + (3*(i % 3) + (j % 3)))*9 + val), 81*i + 9*j + val])
+                        [-1*(81*i + 9*j + d), -1*(81*i + 9*j + d_prime)])
 
     return cnf
 
+# Étape 2
 
-def is_sudoku_solved(vector):
-    grid = [vector[i*9:(i+1)*9] for i in range(9)]
 
-    # Check rows
-    for row in grid:
-        if len(set(row)) != 9 or 0 in row:
+def is_sudoku_solved(sudoku):
+    for row in sudoku:
+        if sorted(row) != list(range(1, 10)):
             return False
 
-    # Check columns
-    for col in zip(*grid):
-        if len(set(col)) != 9:
+    for j in range(9):
+        column = [sudoku[i][j] for i in range(9)]
+        if sorted(column) != list(range(1, 10)):
             return False
 
-    # Check boxes
     for i in range(0, 9, 3):
         for j in range(0, 9, 3):
-            box = [grid[x][y] for x in range(i, i+3) for y in range(j, j+3)]
-            if len(set(box)) != 9:
+            square = [sudoku[i+k//3][j+k % 3] for k in range(9)]
+            if sorted(square) != list(range(1, 10)):
+                return False
+
+    return True
+# Étape 3
+
+
+def is_valid(sudoku, row, col, num):
+    # Vérifier la ligne
+    for x in range(9):
+        if sudoku[row][x] == num:
+            return False
+
+    # Vérifier la colonne
+    for x in range(9):
+        if sudoku[x][col] == num:
+            return False
+
+    # Vérifier le carré
+    start_row = row - row % 3
+    start_col = col - col % 3
+    for i in range(3):
+        for j in range(3):
+            if sudoku[i + start_row][j + start_col] == num:
                 return False
 
     return True
 
 
-def try_random_solutions(cnf):
-    solver = Glucose3()
-
-    # Add the clauses to the solver
-    for clause in cnf.clauses:
-        solver.add_clause(clause)
-
-    # Try random solutions
-    for _ in range(100):  # Try 100 random solutions
-        random_solution = [random.choice([True, False]) for _ in range(81*9)]
-        if solver.solve(assumptions=random_solution):
-            solution = solver.get_model()
-            sudoku_solution = [i for i in solution if i > 0]
-            if is_sudoku_solved(sudoku_solution):
-                print("Sudoku solved!")
-                return sudoku_solution
-
-    print("No solution found.")
-    return None
+def solve_sudoku(sudoku):
+    for i in range(9):
+        for j in range(9):
+            if sudoku[i][j] == 0:
+                for num in range(1, 10):
+                    if is_valid(sudoku, i, j, num):
+                        sudoku[i][j] = num
+                        if solve_sudoku(sudoku):
+                            return True
+                        sudoku[i][j] = 0
+                return False
+    return True
 
 
-if __name__ == "__main__":
-    # Test your code with a Sudoku grid
-    grid = [
-        [0, 3, 4, 6, 7, 8, 9, 1, 2],
-        [6, 7, 2, 1, 9, 5, 3, 4, 8],
-        [1, 9, 8, 3, 4, 2, 5, 6, 7],
-        [8, 5, 9, 7, 6, 1, 4, 2, 3],
-        [4, 2, 6, 8, 5, 3, 7, 9, 1],
-        [7, 1, 3, 0, 2, 4, 8, 5, 6],
-        [9, 6, 1, 5, 3, 7, 0, 8, 4],
-        [2, 8, 7, 4, 1, 9, 6, 3, 5],
-        [3, 4, 5, 2, 8, 6, 1, 7, 9]
+if __name__ == '__main__':
+    valid = False
+
+    # Générer un SUDOKU semi-rempli
+    semi_filled_sudoku = [
+        [5, 3, 0, 0, 7, 0, 0, 0, 0],
+        [6, 0, 0, 1, 9, 5, 0, 0, 0],
+        [0, 9, 8, 0, 0, 0, 0, 6, 0],
+        [8, 0, 0, 0, 6, 0, 0, 0, 3],
+        [4, 0, 0, 8, 0, 3, 0, 0, 1],
+        [7, 0, 0, 0, 2, 0, 0, 0, 6],
+        [0, 6, 0, 0, 0, 0, 2, 8, 0],
+        [0, 0, 0, 4, 1, 9, 0, 0, 5],
+        [0, 0, 0, 0, 8, 0, 0, 7, 9]
     ]
-    print
-    done = False
-    while done == False:
-        cnf = encode_sudoku(grid)
-        solution = try_random_solutions(cnf)
-        if solution:
-            print("Solution found:")
-            done = True
-            print(solution)
-        else:
-            print("No solution found.")
+    while valid == False:
+        valid = solve_sudoku(semi_filled_sudoku)
+        if valid == True:
+            print(semi_filled_sudoku)
+            print(is_sudoku_solved(semi_filled_sudoku))
