@@ -1,6 +1,6 @@
 import random
 from pysat.formula import CNF
-
+from time import *
 # Étape 1
 
 
@@ -54,62 +54,77 @@ def is_sudoku_solved(sudoku):
                 return False
 
     return True
+
 # Étape 3
 
 
-def is_valid(sudoku, row, col, num):
-    # Vérifier la ligne
-    for x in range(9):
-        if sudoku[row][x] == num:
-            return False
-
-    # Vérifier la colonne
-    for x in range(9):
-        if sudoku[x][col] == num:
-            return False
-
-    # Vérifier le carré
-    start_row = row - row % 3
-    start_col = col - col % 3
-    for i in range(3):
-        for j in range(3):
-            if sudoku[i + start_row][j + start_col] == num:
-                return False
-
-    return True
-
-
-def solve_sudoku(sudoku):
+def fill_zeros(sudoku):
+    # Create a copy of the original list
+    filled_sudoku = [row[:] for row in sudoku]
     for i in range(9):
         for j in range(9):
-            if sudoku[i][j] == 0:
-                for num in range(1, 10):
-                    if is_valid(sudoku, i, j, num):
-                        sudoku[i][j] = num
-                        if solve_sudoku(sudoku):
-                            return True
-                        sudoku[i][j] = 0
-                return False
-    return True
+            if filled_sudoku[i][j] == 0:
+                filled_sudoku[i][j] = random.randint(1, 9)
+    return filled_sudoku
+
+# def is_valid(sudoku, row, col, num):
+#     # Vérifier la ligne
+#     for x in range(9):
+#         if sudoku[row][x] == num:
+#             return False
+
+#     # Vérifier la colonne
+#     for x in range(9):
+#         if sudoku[x][col] == num:
+#             return False
+
+#     # Vérifier le carré
+#     start_row = row - row % 3
+#     start_col = col - col % 3
+#     for i in range(3):
+#         for j in range(3):
+#             if sudoku[i + start_row][j + start_col] == num:
+#                 return False
+
+#     return True
+
+
+# def solve_sudoku(sudoku):
+#     for i in range(9):
+#         for j in range(9):
+#             if sudoku[i][j] == 0:
+#                 for num in range(1, 10):
+#                     if is_valid(sudoku, i, j, num):
+#                         sudoku[i][j] = num
+#                         if solve_sudoku(sudoku):
+#                             return True
+#                         sudoku[i][j] = 0
+#                 return False
+#     return True
 
 
 if __name__ == '__main__':
-    valid = False
 
-    # Générer un SUDOKU semi-rempli
-    semi_filled_sudoku = [
-        [5, 3, 0, 0, 7, 0, 0, 0, 0],
-        [6, 0, 0, 1, 9, 5, 0, 0, 0],
-        [0, 9, 8, 0, 0, 0, 0, 6, 0],
-        [8, 0, 0, 0, 6, 0, 0, 0, 3],
-        [4, 0, 0, 8, 0, 3, 0, 0, 1],
-        [7, 0, 0, 0, 2, 0, 0, 0, 6],
-        [0, 6, 0, 0, 0, 0, 2, 8, 0],
-        [0, 0, 0, 4, 1, 9, 0, 0, 5],
-        [0, 0, 0, 0, 8, 0, 0, 7, 9]
-    ]
+    semi_filled_sudoku = [[0, 0, 4, 6, 7, 8, 9, 1, 2],
+                          [6, 7, 2, 1, 9, 5, 3, 4, 8],
+                          [1, 9, 8, 3, 4, 2, 5, 6, 7],
+                          [8, 5, 9, 7, 6, 1, 4, 2, 3],
+                          [4, 2, 6, 8, 5, 3, 7, 9, 1],
+                          [7, 1, 3, 9, 2, 4, 8, 5, 6],
+                          [9, 6, 1, 5, 3, 7, 2, 8, 4],
+                          [2, 8, 7, 4, 1, 9, 6, 3, 5],
+                          [3, 4, 5, 2, 8, 6, 1, 0, 0]]
+
+    valid = is_sudoku_solved(semi_filled_sudoku)
     while valid == False:
-        valid = solve_sudoku(semi_filled_sudoku)
-        if valid == True:
-            print(semi_filled_sudoku)
-            print(is_sudoku_solved(semi_filled_sudoku))
+        sudoku = fill_zeros(semi_filled_sudoku)
+        print(sudoku)
+        valid = is_sudoku_solved(sudoku)
+    print(sudoku)
+
+    # code qui résout le sudoku
+    # while valid == False:
+    #     valid = solve_sudoku(semi_filled_sudoku)
+    #     if valid == True:
+    #         print(semi_filled_sudoku)
+    #         print(is_sudoku_solved(semi_filled_sudoku))
