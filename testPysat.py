@@ -1,6 +1,7 @@
 import random
 from pysat.formula import CNF
 from time import *
+from pybloom_live import BloomFilter
 # Étape 1
 
 
@@ -58,15 +59,6 @@ def is_sudoku_solved(sudoku):
 # Étape 3
 
 
-def fill_zeros(sudoku):
-    # Create a copy of the original list
-    filled_sudoku = [row[:] for row in sudoku]
-    for i in range(9):
-        for j in range(9):
-            if filled_sudoku[i][j] == 0:
-                filled_sudoku[i][j] = random.randint(1, 9)
-    return filled_sudoku
-
 # def is_valid(sudoku, row, col, num):
 #     # Vérifier la ligne
 #     for x in range(9):
@@ -102,6 +94,19 @@ def fill_zeros(sudoku):
 #                 return False
 #     return True
 
+# Initialisez le filtre de Bloom
+bloom_filter = BloomFilter(capacity=1000, error_rate=0.1)
+
+
+def fill_zeros(sudoku):
+    # Create a copy of the original list
+    filled_sudoku = [row[:] for row in sudoku]
+    for i in range(9):
+        for j in range(9):
+            if filled_sudoku[i][j] == 0:
+                filled_sudoku[i][j] = random.randint(1, 9)
+    return filled_sudoku
+
 
 if __name__ == '__main__':
 
@@ -116,11 +121,22 @@ if __name__ == '__main__':
                           [3, 4, 5, 2, 8, 6, 1, 0, 0]]
 
     valid = is_sudoku_solved(semi_filled_sudoku)
+    i = 0
     while valid == False:
         sudoku = fill_zeros(semi_filled_sudoku)
-        print(sudoku)
-        valid = is_sudoku_solved(sudoku)
-    print(sudoku)
+        # Convertir le sudoku en tuple pour le stocker dans le filtre de Bloom
+        sudoku_tuple = tuple(tuple(row) for row in sudoku)
+        if bloom_filter.capacity == bloom_filter.__len__():
+            print("capacité maximale atteinte")
+            valid = True
+        elif sudoku_tuple in bloom_filter:
+            print("Cette tentative a déjà été faite.")
+        else:
+            bloom_filter.add(sudoku_tuple)
+            print(sudoku)
+            i += 1
+            valid = is_sudoku_solved(sudoku)
+    print(i)
 
     # code qui résout le sudoku
     # while valid == False:
